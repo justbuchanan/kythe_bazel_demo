@@ -2,15 +2,37 @@ version: 2
 jobs:
   build:
     docker:
-      - image: debian:stretch
+      - image: ubuntu:bionic
+    environment:
+      GOPATH: /go
 
     steps:
       - checkout
 
-      - run:
-          name: Greeting
-          command: echo Hello, world.
+      # install dependencies
+      - run: apt-get update
+      - run: apt-get install -y software-properties-common 
+      - run: add-apt-repository ppa:gophers/archive -y
+      - run: apt-get update
+      - run: apt-get install -y libeigen3-dev git golang-1.11-go wget
+      - run: echo 'export PATH="$GOPATH/bin:/usr/lib/go-1.11/bin:$PATH"' >> $BASH_ENV
+      - run: go get -u github.com/bazelbuild/bazelisk
 
-      - run:
-          name: Print the Current Time
-          command: date
+      # build
+      - run: bazelisk build //...
+
+      # install kythe - using a hacked version of the release archive that includes extractors.bazelrc
+      - run: wget -O /tmp/kythe.tar.gz https://github.com/justbuchanan/kythe/releases/download/v0.0.30.test.justbuchanan/kythe-v0.0.30.test.justbuchanan.tar.gz
+      - run: tar --no-same-owner -xvzf /tmp/kythe.tar.gz --directory /opt
+      - run: echo 'KYTHE_DIR=/opt/kythe-v0.0.30.test.justbuchanan' >> $BASH_ENV
+
+      # bazel extraction
+      - run: bazelisk --bazelrc=$KYTHE_DIR/extractors.bazelrc build --override_repository kythe_release=$KYTHE_DIR //...
+      # TODO: handle return code. Extraction should succeed even if not all targets build successfully
+
+      # create and store final kzip
+      - run: $KYTHE_DIR/tools/kzip merge --output /tmp/final.kzip $(find bazel-out/*/extra_actions/ -name "*.kzip")
+      - run: $KYTHE_DIR/tools/kzip info --input /tmp/final.kzip
+      - store_artifacts:
+          path: /tmp/final.kzip
+          destination: kythe_demo.kzip
