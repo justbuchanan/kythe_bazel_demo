@@ -4,35 +4,82 @@ jobs:
     docker:
       - image: ubuntu:bionic
     environment:
-      GOPATH: /go
+      KYTHE_VERSION: v0.0.30.test.justbuchanan
 
     steps:
       - checkout
 
-      # install dependencies
       - run: apt-get update
-      - run: apt-get install -y software-properties-common 
-      - run: add-apt-repository ppa:gophers/archive -y
-      - run: apt-get update
-      - run: apt-get install -y libeigen3-dev git golang-1.11-go wget
+
+      # install go
+      - run: apt-get install -y software-properties-common && add-apt-repository ppa:gophers/archive -y && apt-get update
+      - run: apt-get install -y git golang-1.11-go
+      - run: echo 'export GOPATH=/go' >> $BASH_ENV
       - run: echo 'export PATH="$GOPATH/bin:/usr/lib/go-1.11/bin:$PATH"' >> $BASH_ENV
+
+      # install bazelisk
       - run: go get -u github.com/bazelbuild/bazelisk
 
-      # build
+      # build and build deps
+      - run: apt-get install -y libeigen3-dev
       - run: bazelisk build //...
 
-      # install kythe - using a hacked version of the release archive that includes extractors.bazelrc
-      - run: wget -O /tmp/kythe.tar.gz https://github.com/justbuchanan/kythe/releases/download/v0.0.30.test.justbuchanan/kythe-v0.0.30.test.justbuchanan.tar.gz
+      # install kythe
+      - run: apt-get install -y wget
+      - run: wget -O /tmp/kythe.tar.gz https://github.com/justbuchanan/kythe/releases/download/$KYTHE_VERSION/kythe-$KYTHE_VERSION.tar.gz
       - run: tar --no-same-owner -xvzf /tmp/kythe.tar.gz --directory /opt
-      - run: echo 'KYTHE_DIR=/opt/kythe-v0.0.30.test.justbuchanan' >> $BASH_ENV
+      - run: echo 'KYTHE_DIR=/opt/kythe-$KYTHE_VERSION' >> $BASH_ENV
 
-      # bazel extraction
+      # re-build with extraction enabled
       - run: bazelisk --bazelrc=$KYTHE_DIR/extractors.bazelrc build --override_repository kythe_release=$KYTHE_DIR //...
       # TODO: handle return code. Extraction should succeed even if not all targets build successfully
 
       # create and store final kzip
-      - run: $KYTHE_DIR/tools/kzip merge --output /tmp/final.kzip $(find bazel-out/*/extra_actions/ -name "*.kzip")
-      - run: $KYTHE_DIR/tools/kzip info --input /tmp/final.kzip
+      - run: mkdir -p /workspace
+      - run: $KYTHE_DIR/tools/kzip merge --output /workspace/final.kzip $(find bazel-out/*/extra_actions/ -name "*.kzip")
+      - run: $KYTHE_DIR/tools/kzip info --input /workspace/final.kzip
+      - persist_to_workspace:
+          root: /workspace
+          paths:
+            - final.kzip
+
+      # optional: save kzip to circleci artifacts - it can be downloaded from the web interface
       - store_artifacts:
-          path: /tmp/final.kzip
+          path: /workspace/final.kzip
           destination: kythe_demo.kzip
+
+
+  # use google cloud service account to upload the final kzip to a gcs bucket.
+  # Requires the following environment variables:
+  # * GCS_PROJECT_ID - gcloud project id
+  # * GCS_SERVICE_ACCOUNT_KEY - service account access key (json format)
+  upload_kzip:
+    docker:
+      - image: google/cloud-sdk
+    environment:
+      KYTHE_CORPUS: github.com/justbuchanan/kythe_bazel_demo
+      KYTHE_GCS_BUCKET_PATH: justinbuchanan_kythe_experiments/kzip_dropbox
+
+    steps:
+      # authenticate
+      - run: |
+          echo $GCS_SERVICE_ACCOUNT_KEY | gcloud auth activate-service-account --key-file=-
+          gcloud --quiet config set project ${GCS_PROJECT_ID}
+
+      - attach_workspace:
+          at: /workspace
+      # test if file is accessible
+      - run: stat /workspace/final.kzip
+
+      # upload
+      - run: gsutil cp /workspace/final.kzip gs://$KYTHE_GCS_BUCKET_PATH/$KYTHE_CORPUS/$CIRCLE_BUILD_NUM.kzip
+
+
+workflows:
+  version: 2
+  build_and_upload_kzip:
+    jobs:
+      - build
+      - upload_kzip:
+          requires:
+            - build
