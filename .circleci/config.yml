@@ -72,7 +72,7 @@ jobs:
       - run: stat /workspace/final.kzip
 
       # upload
-      - run: gsutil cp /workspace/final.kzip gs://$KYTHE_GCS_BUCKET_PATH/$KYTHE_CORPUS/$CIRCLE_BUILD_NUM.kzip
+      - run: gsutil cp /workspace/final.kzip gs://$KYTHE_GCS_BUCKET_PATH/$KYTHE_CORPUS/${CIRCLE_BUILD_NUM}_${CIRCLE_SHA1}.kzip
 
 
 workflows:
