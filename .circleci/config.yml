@@ -5,6 +5,7 @@ jobs:
       - image: ubuntu:bionic
     environment:
       KYTHE_VERSION: v0.0.30.test.justbuchanan
+      KYTHE_CORPUS: github.com/justbuchanan/kythe_bazel_demo
 
     steps:
       - checkout
