@@ -4,7 +4,7 @@ jobs:
     docker:
       - image: ubuntu:bionic
     environment:
-      KYTHE_VERSION: v0.0.30.test.justbuchanan
+      KYTHE_VERSION: v0.0.32
       KYTHE_CORPUS: github.com/justbuchanan/kythe_bazel_demo
 
     steps:
@@ -27,7 +27,7 @@ jobs:
 
       # install kythe
       - run: apt-get install -y wget
-      - run: wget -O /tmp/kythe.tar.gz https://github.com/justbuchanan/kythe/releases/download/$KYTHE_VERSION/kythe-$KYTHE_VERSION.tar.gz
+      - run: wget -O /tmp/kythe.tar.gz https://github.com/kythe/kythe/releases/download/$KYTHE_VERSION/kythe-$KYTHE_VERSION.tar.gz
       - run: tar --no-same-owner -xvzf /tmp/kythe.tar.gz --directory /opt
       - run: echo 'KYTHE_DIR=/opt/kythe-$KYTHE_VERSION' >> $BASH_ENV
 
