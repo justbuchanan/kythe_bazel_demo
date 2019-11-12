@@ -32,7 +32,7 @@ jobs:
       - run: echo 'KYTHE_DIR=/opt/kythe-$KYTHE_VERSION' >> $BASH_ENV
 
       # re-build with extraction enabled
-      - run: bazelisk --bazelrc=$KYTHE_DIR/extractors.bazelrc build --override_repository kythe_release=$KYTHE_DIR //...
+      - run: bazelisk --bazelrc=$KYTHE_DIR/extractors.bazelrc build --define kythe_corpus=$KYTHE_CORPUS --override_repository kythe_release=$KYTHE_DIR //...
       # TODO: handle return code. Extraction should succeed even if not all targets build successfully
 
       # create and store final kzip
