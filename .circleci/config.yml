@@ -4,7 +4,7 @@ jobs:
     docker:
       - image: ubuntu:bionic
     environment:
-      KYTHE_VERSION: v0.0.39
+      KYTHE_VERSION: v0.0.55
       KYTHE_CORPUS: github.com/justbuchanan/kythe_bazel_demo
 
     steps:
