@@ -14,7 +14,7 @@ jobs:
 
       # install go
       - run: apt-get install -y software-properties-common && add-apt-repository ppa:gophers/archive -y && apt-get update
-      - run: apt-get install -y git golang-1.11-go
+      - run: apt-get install -y git ssh golang-1.11-go
       - run: echo 'export GOPATH=/go' >> $BASH_ENV
       - run: echo 'export PATH="$GOPATH/bin:/usr/lib/go-1.11/bin:$PATH"' >> $BASH_ENV
 
