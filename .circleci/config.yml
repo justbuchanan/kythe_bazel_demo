@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ubuntu:bionic
+      - image: ubuntu:focal
     environment:
       KYTHE_VERSION: v0.0.55
       KYTHE_CORPUS: github.com/justbuchanan/kythe_bazel_demo
