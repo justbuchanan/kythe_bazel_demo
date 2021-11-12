@@ -2,22 +2,23 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ubuntu:bionic
+      - image: ubuntu:focal
     environment:
-      KYTHE_VERSION: v0.0.55
+      KYTHE_VERSION: v0.0.52
       KYTHE_CORPUS: github.com/justbuchanan/kythe_bazel_demo
       DEBIAN_FRONTEND: noninteractive
+      GOPATH: /go
 
     steps:
       - checkout
 
       - run: apt-get update
 
+      - run: apt-get install -y git ssh
+
       # install go
-      - run: apt-get install -y software-properties-common && add-apt-repository ppa:gophers/archive -y && apt-get update
-      - run: apt-get install -y git ssh golang-1.11-go
-      - run: echo 'export GOPATH=/go' >> $BASH_ENV
-      - run: echo 'export PATH="$GOPATH/bin:/usr/lib/go-1.11/bin:$PATH"' >> $BASH_ENV
+      - run: apt-get install -y golang
+      - run: echo 'export PATH="$GOPATH/bin:$PATH"' >> $BASH_ENV
 
       # install bazelisk
       - run: go get -u github.com/bazelbuild/bazelisk
