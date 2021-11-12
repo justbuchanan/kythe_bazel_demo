@@ -6,6 +6,7 @@ jobs:
     environment:
       KYTHE_VERSION: v0.0.55
       KYTHE_CORPUS: github.com/justbuchanan/kythe_bazel_demo
+      RUN DEBIAN_FRONTEND: noninteractive
 
     steps:
       - checkout
